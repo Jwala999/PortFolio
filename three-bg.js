@@ -222,9 +222,37 @@ function animate3D() {
             + Math.sin((x + z) * 0.07 + time * 1.1) * 2);
     }
     pos.needsUpdate = true;
-    waveMat.color.setHSL(0.72 + Math.sin(time * 0.15) * 0.04, 0.85, 0.55);
+    // ── RGB MECHANICAL COLOR CYCLING ──
+    // Base hue rotates 0→1 over ~25 seconds, each element offset for a rainbow cascade
+    var baseHue = (currentTime * 0.04) % 1.0;
+    var hue2 = (baseHue + 0.33) % 1.0;  // 120° offset
+    var hue3 = (baseHue + 0.66) % 1.0;  // 240° offset
+    var hue4 = (baseHue + 0.15) % 1.0;  // slight offset
+    var hue5 = (baseHue + 0.5) % 1.0;   // complementary
 
-    // Orb & Rings
+    // Wave — main RGB cycle
+    waveMat.color.setHSL(baseHue, 0.9, 0.55);
+
+    // Orb — offset RGB
+    orbMat.color.setHSL(hue2, 0.85, 0.5);
+    orbMat.emissive.setHSL(hue2, 0.9, 0.3);
+
+    // Glow shell — complementary
+    glowMat.color.setHSL(hue3, 0.8, 0.5);
+
+    // Rings — each a different phase
+    ring1.material.color.setHSL(baseHue, 0.9, 0.6);
+    ring2.material.color.setHSL(hue2, 0.85, 0.55);
+    ring3.material.color.setHSL(hue3, 0.8, 0.5);
+
+    // Lights — follow the main hue
+    coreLight.color.setHSL(baseHue, 0.9, 0.5);
+    tealLight.color.setHSL(hue3, 0.85, 0.5);
+
+    // Orbit dots — sparkle between hues
+    dotMat.color.setHSL(hue4, 0.7, 0.8);
+
+    // Orb & Rings animation
     var pulse = 1 + Math.sin(time * 2) * 0.05;
     orb.scale.set(pulse, pulse, pulse);
     orbGroup.position.y = 2 + Math.sin(time * 1.5) * 0.5;
@@ -241,13 +269,17 @@ function animate3D() {
         dot.position.set(xp * cosZ - y1 * sinZ, xp * sinZ + y1 * cosZ, z1);
     });
 
-    // Floating Shapes
+    // Floating Shapes — each cycles independently
     shapes.forEach(function(s, idx) {
         s.rotation.x += 0.01 * (idx + 1);
         s.rotation.y += 0.015 * (idx + 1);
         s.position.y += Math.sin(time * 2 + idx) * 0.02;
+        var shapeHue = (baseHue + idx * 0.2) % 1.0;
+        s.material.color.setHSL(shapeHue, 0.85, 0.55);
     });
 
+    // Stars — subtle hue shift
+    starMesh.material.color.setHSL(hue5, 0.6, 0.7);
     starMesh.rotation.y = time * 0.05;
 
     // Dragon flight
@@ -262,6 +294,14 @@ function animate3D() {
         var dz = -Math.sin(currentTime * flightSpeed) * flightRadius * flightSpeed;
         var dy = Math.cos(currentTime * 0.3) * 5 * 0.3;
         dragonModel.lookAt(dragonModel.position.x + dx, dragonModel.position.y + dy, dragonModel.position.z + dz);
+
+        // Dragon RGB glow cycle
+        var dragonHue = (baseHue + 0.1) % 1.0;
+        dragonModel.traverse(function(child) {
+            if (child.isMesh && child.material.emissive) {
+                child.material.emissive.setHSL(dragonHue, 0.9, 0.35);
+            }
+        });
     }
 
     // Camera
